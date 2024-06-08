@@ -2,6 +2,7 @@ package com.mygdx.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -25,12 +26,12 @@ public class Game extends ApplicationAdapter {
 	Deck deck;
 	Tableau tableau;
 	Stock stock;
+	Waste waste;
 
 	private SpriteBatch batch;
 
 	private Texture bg;
-	private Texture cardTextures;
-	private Texture cardBackTexture;
+    private Texture cardBackTexture;
 
 	private TextureRegion[][] cardTextureRegions;
 
@@ -38,7 +39,7 @@ public class Game extends ApplicationAdapter {
 	{
 		bg = new Texture(Gdx.files.internal("textures/Backgrounds/background_2.png"));
 		cardBackTexture = new Texture(Gdx.files.internal("textures/Standard/solitaire/individuals/cardback/card_back.png"));
-		cardTextures = new Texture(Gdx.files.internal("textures/Standard/solitaire/all_cards.png"));
+        Texture cardTextures = new Texture(Gdx.files.internal("textures/Standard/solitaire/all_cards.png"));
 
 		cardTextureRegions = new TextureRegion[4][13];
 
@@ -54,31 +55,83 @@ public class Game extends ApplicationAdapter {
 	}
 	
 	@Override
-	public void create () {
+	public void create ()
+	{
 		loadTextures();
 		deck = new Deck();
 		tableau = new Tableau();
 		stock = new Stock();
+		waste = new Waste();
 		deck.shuffle();
+
 		setupGame();
 
 		batch = new SpriteBatch();
+
 	}
 
 	@Override
-	public void render () {
+	public void render ()
+	{
 		batch.begin();
-		batch.draw(bg, 0, 0, 1280, 720);
-		//batch.draw(cardTextureRegions[2][2], 0, 0);
-		renderTableau();
+		renderGame();
 		batch.end();
+
+		// HANDLE INPUT FROM USER
+		if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE))
+		{
+			shuffleThroughStock();
+		}
 	}
-	//test
+
+	public void shuffleThroughStock()
+	{
+		// IF STOCK PILE IS EMPTY WHEN TRYING TO SHUFFLE THROUGH, MOVE ALL THE WASTE BACK INTO STOCK
+		if (stock.getStock().isEmpty())
+		{
+			for (int i = waste.getWaste().size()-1; i >= 0; i--)
+			{
+				stock.addCard(waste.getWaste().get(i));
+			}
+			waste.getWaste().clear();
+			return;
+		}
+		// IF THERE IS LESS THAN 3 CARDS IN THE STOCK PILE JUST PUT ALL THOSE CARDS INTO WASTE
+		if (stock.getStock().size() < 3)
+		{
+			waste.getWaste().addAll(stock.getStock());
+			stock.getStock().clear();
+			return;
+		}
+
+		for (int i = 0; i < 3; i++)
+		{
+			// GET TOP CARD FROM STOCK
+			Card currentStockCard = stock.getStock().get(stock.getStock().size()-1);
+			//printCardData(currentStockCard);
+			// MOVE THAT TOP CARD FROM STOCK INTO THE WASTE PILE
+			waste.addCard(currentStockCard);
+			// DELETE THE TOP CARD FROM THE STOCK SINCE IT WAS MOVED TO THE WASTE
+			stock.getStock().remove(stock.getStock().size()-1);
+		}
+		//System.out.println(stock.getStock().size());
+		//System.out.println(waste.getWaste().size());
+
+	}
 
 	public void setupGame()
 	{
 		setupTableau();
 		setupStockPile();
+	}
+	public void renderGame()
+	{
+		// RENDER BACKGROUND
+		batch.draw(bg, 0, 0, 1280, 720);
+
+		renderTableau();
+		renderStockPile();
+		renderWastePile();
 	}
 
 	public void setupTableau()
@@ -125,7 +178,12 @@ public class Game extends ApplicationAdapter {
 	}
 	public void setupStockPile()
 	{
-		stock.setStock(deck.getDeck());
+		// PLACE ALL THE REST OF THE CARDS IN THE DECK INTO THE STOCK.
+		for (int i = 0; i < deck.getDeck().size(); i++)
+		{
+			stock.addCard(deck.getDeck().get(i));
+		}
+		//System.out.println(stock.getStock().size());
 		deck.getDeck().clear();
 	}
 
@@ -147,10 +205,42 @@ public class Game extends ApplicationAdapter {
 				} else {
 					batch.draw(cardBackTexture, xPos + col*144, yPos + card*-50);
 				}
-
-
 			}
 		}
+	}
+
+	public void renderStockPile()
+	{
+		if (!stock.getStock().isEmpty())
+		{
+			int offset = 20;
+			batch.draw(cardBackTexture, offset, 720-144 - offset);
+		}
+	}
+
+	public void renderWastePile()
+	{
+		if (!waste.getWaste().isEmpty())
+		{
+			for (int i = 0; i < waste.getWaste().size(); i++)
+			{
+				Card topCard = waste.getWaste().get(i);
+				batch.draw(cardTextureRegions[topCard.getSuit()-1][topCard.getValue()-1], 35*i+120, 720-175);
+
+			}
+			/*
+			Card topCard = waste.getWaste().get(waste.getWaste().size()-1);
+			batch.draw(cardTextureRegions[topCard.getSuit()-1][topCard.getValue()-1], 144+offset, 720-155 - offset);
+			*/
+
+		}
+
+	}
+
+	// DEBUGGING PURPOSES
+	public void printCardData(Card c)
+	{
+		System.out.println("Suit: " + c.getSuit() + " Value: " + c.getValue());
 	}
 
 	@Override

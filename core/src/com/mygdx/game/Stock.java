@@ -10,6 +10,11 @@ public class Stock
     {
         stock = new ArrayList<>();
     }
+    public void addCard(Card c)
+    {
+        stock.add(c);
+    }
+
     public void setStock(ArrayList<Card> cards)
     {
         stock = cards;
