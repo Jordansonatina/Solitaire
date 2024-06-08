@@ -73,6 +73,7 @@ public class Game extends ApplicationAdapter {
 		renderTableau();
 		batch.end();
 	}
+	//test
 
 	public void setupGame()
 	{
